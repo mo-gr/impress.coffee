@@ -16,6 +16,8 @@ for the language.
 If you plan to make a presentation with impress.coffee, please consider using impress.js instead. If you really dare
 to use impress.coffee, then please attribute Bartek Szopka. I merely recreated his work.
 
+Any comments about it, especially about all the glaring obvious CoffeeScript rookie errors I made, are welcome :)
+
 Usage
 -----
 
@@ -25,5 +27,7 @@ unmodified example of impress.js and therefore mentions impress.coffee at no poi
 LICENSE
 ---------
 
-Copyright 2011-2012 Moritz Grauel (@mo_gr). Released under MIT License.
+Copyright 2011-2012 Moritz Grauel ([@mo_gr][1]). Released under MIT License.
+
+[1]: https://twitter.com/#!/mo_gr
 
