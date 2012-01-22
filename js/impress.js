@@ -19,33 +19,37 @@ helper functions
 */
 
 (function() {
-  var $$, active, byId, canvas, css, current, data, getElementFromUrl, hashTimeout, idx, impress, impressSupported, memory, pfx, prefixes, props, rotate, scale, select, selectNext, selectPrev, step, stepData, steps, styleDummy, toArray, translate, ua, _len;
+  var $$, active, byId, canvas, css, current, data, getElementFromUrl, hashTimeout, idx, impress, impressSupported, pfx, prefixMemory, prefixes, props, rotate, scale, select, selectNext, selectPrev, step, stepData, steps, styleDummy, toArray, translate, ua, _len;
 
   styleDummy = document.createElement('dummy').style;
 
   prefixes = ["Webkit", "Moz", "O", "ms", "Khtml"];
 
-  memory = {};
+  prefixMemory = {};
 
   pfx = function(prop) {
-    var i, props, ucProp, _i, _len;
-    if (!(memory[prop] != null)) {
-      ucProp = prop[0].toUpperCase() + prop.substr(1);
-      props = (prop + " " + prefixes.join(ucProp + " ") + ucProp).split(" ");
-      memory[prop] = null;
+    var property, props, uppercaseProp, _i, _len;
+    if (!(prefixMemory[prop] != null)) {
+      uppercaseProp = prop[0].toUpperCase() + prop.substr(1);
+      props = (prop + " " + prefixes.join(uppercaseProp + " ") + uppercaseProp).split(" ");
+      prefixMemory[prop] = null;
       for (_i = 0, _len = props.length; _i < _len; _i++) {
-        i = props[_i];
-        if (styleDummy[i] !== void 0) {
-          memory[prop] = i;
+        property = props[_i];
+        if (styleDummy[property] != null) {
+          prefixMemory[prop] = property;
           break;
         }
       }
     }
-    return memory[prop];
+    return prefixMemory[prop];
   };
 
   byId = function(id) {
     return document.getElementById(id);
+  };
+
+  getElementFromUrl = function() {
+    return byId(window.location.hash.replace(/^#\/?/, ""));
   };
 
   toArray = function(a) {
@@ -65,6 +69,10 @@ helper functions
     }
     return el;
   };
+
+  /*
+  CSS Helper
+  */
 
   translate = function(t) {
     return " translate3d(" + t.x + "px," + t.y + "px," + t.z + "px) ";
@@ -92,7 +100,7 @@ helper functions
 
   ua = navigator.userAgent.toLowerCase();
 
-  impressSupported = ua.search(/(iphone)|(ipod)|(ipad)|(android)/) === -1;
+  impressSupported = (pfx("perspective") != null) && ua.search(/(iphone)|(ipod)|(ipad)|(android)/) === -1;
 
   /*
   DOM Elements
@@ -115,7 +123,7 @@ helper functions
   steps = $$(".step", impress);
 
   /*
-  Setup
+  Setup the document
   */
 
   document.documentElement.style.height = "100%";
@@ -177,9 +185,7 @@ helper functions
       scale: data.scale || 1
     };
     step.stepData = stepData;
-    console.log("step " + step + " and idx " + idx);
     if (!step.id) step.id = "step-" + idx;
-    console.log("step " + step + " and id " + step.id);
     css(step, {
       position: "absolute",
       transform: "translate(-50%,-50%)" + translate(stepData.translate) + rotate(stepData.rotate) + scale(stepData.scale),
@@ -196,8 +202,8 @@ helper functions
   hashTimeout = null;
 
   select = function(el) {
-    var duration, target, zoomin;
-    if (!((el != null) || (el.stepData != null) || el === active)) return false;
+    var duration, target, zooming;
+    if (!(el && el.stepData && el !== active)) return false;
     window.scrollTo(0, 0);
     step = el.stepData;
     if (active != null) active.classList.remove("active");
@@ -220,18 +226,18 @@ helper functions
       },
       scale: 1 / parseFloat(step.scale)
     };
-    zoomin = target.scale >= current.scale;
+    zooming = target.scale >= current.scale;
     duration = active ? "1s" : "0";
     css(impress, {
       perspective: step.scale * 1000 + "px",
       transform: scale(target.scale),
       transitionDuration: duration,
-      transitionDelay: zoomin ? "500ms" : "0ms"
+      transitionDelay: zooming ? "500ms" : "0ms"
     });
     css(canvas, {
       transform: rotate(target.rotate, true) + translate(target.translate),
       transitionDuration: duration,
-      transitionDelay: zoomin ? "0ms" : "500ms"
+      transitionDelay: zooming ? "0ms" : "500ms"
     });
     current = target;
     return active = el;
@@ -267,13 +273,26 @@ helper functions
     }
   }, false);
 
-  getElementFromUrl = function() {
-    return byId(window.location.hash.replace(/^#\/?/, ""));
-  };
+  document.addEventListener("click", function(event) {
+    var href, target;
+    target = event.target;
+    while (target.tagName !== "A" && !target.stepData && target !== document.body) {
+      target = target.parentNode;
+    }
+    if (target.tagName === "A") {
+      href = target.getAttribute("href");
+      if (href && href[0] === '#') target = byId(href.slice(1));
+    }
+    if (select(target)) return event.preventDefault();
+  }, false);
 
   window.addEventListener("hashchange", function() {
     return select(getElementFromUrl());
   }, false);
+
+  /*
+  start impress
+  */
 
   select(getElementFromUrl() || steps[0]);
 
