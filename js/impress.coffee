@@ -18,21 +18,25 @@ helper functions
 ###
 styleDummy = document.createElement('dummy').style
 prefixes = ["Webkit", "Moz", "O", "ms", "Khtml"]
-memory = {}
+prefixMemory = {}
 
+# find the supported prefix of a property and return it
 pfx = (prop) ->
-  if (! memory[prop]?)
-    ucProp = prop[0].toUpperCase() + prop.substr(1)
-    props = (prop + " " + prefixes.join(ucProp + " ") + ucProp).split(" ")
-    memory[prop] = null
-    for i in props
-      if styleDummy[i] != undefined
-        memory[prop] = i
+  if (! prefixMemory[prop]?)
+    uppercaseProp = prop[0].toUpperCase() + prop.substr(1)
+    props = (prop + " " + prefixes.join(uppercaseProp + " ") + uppercaseProp).split(" ")
+    prefixMemory[prop] = null
+    for property in props
+      if styleDummy[property]?
+        prefixMemory[prop] = property
         break
-  memory[prop]
+  prefixMemory[prop]
 
 byId = (id) ->
   document.getElementById id
+
+getElementFromUrl = () ->
+  byId window.location.hash.replace(/^#\/?/, "")
 
 toArray = (a) ->
   Array.prototype.slice.call(a)
@@ -45,6 +49,9 @@ css = ( el, props ) ->
     el.style[pfx(styleKey)] = value
   el
 
+###
+CSS Helper
+###
 translate =  ( t ) ->
   " translate3d(" + t.x + "px," + t.y + "px," + t.z + "px) "
 
@@ -60,10 +67,9 @@ scale = ( s ) ->
 ###
 check support
 ###
-
 ua = navigator.userAgent.toLowerCase()
 
-impressSupported = ua.search(/(iphone)|(ipod)|(ipad)|(android)/) == -1 # TODO check for perpective
+impressSupported = pfx("perspective")? and ua.search(/(iphone)|(ipod)|(ipad)|(android)/) == -1
 
 ###
 DOM Elements
@@ -85,9 +91,8 @@ impress.appendChild canvas
 steps = $$(".step", impress)
 
 ###
-Setup
+Setup the document
 ###
-
 document.documentElement.style.height = "100%"
 
 css document.body, {
@@ -155,9 +160,9 @@ active = null;
 hashTimeout = null;
 
 select = (el) ->
-  return false unless el? or el.stepData? or el == active
-  window.scrollTo 0, 0
+  return false unless el and el.stepData and el != active
 
+  window.scrollTo 0, 0
   step = el.stepData
 
   active.classList.remove "active" if active?
@@ -184,7 +189,7 @@ select = (el) ->
     scale: 1 / parseFloat(step.scale)
   }
 
-  zoomin = target.scale >= current.scale
+  zooming = target.scale >= current.scale
 
   duration = if active then "1s" else "0"
 
@@ -192,13 +197,13 @@ select = (el) ->
     perspective: step.scale * 1000 + "px",
     transform: scale(target.scale),
     transitionDuration: duration,
-    transitionDelay: if zoomin then "500ms" else "0ms"
+    transitionDelay: if zooming then "500ms" else "0ms"
   }
 
   css canvas, {
     transform: rotate(target.rotate, true) + translate(target.translate),
     transitionDuration: duration,
-    transitionDelay: if zoomin then "0ms" else "500ms"
+    transitionDelay: if zooming then "0ms" else "500ms"
   }
 
   current = target
@@ -226,12 +231,25 @@ document.addEventListener("keydown", (event) ->
     event.preventDefault()
 , false)
 
+document.addEventListener("click", (event) ->
+  target = event.target
+  while (target.tagName != "A" and not target.stepData and target != document.body)
+    target = target.parentNode
 
-getElementFromUrl = () ->
-  byId window.location.hash.replace(/^#\/?/, "")
+  if target.tagName == "A"
+    href = target.getAttribute "href"
+    target = byId href.slice(1) if href and href[0] == '#'
+
+  if select target
+    event.preventDefault()
+, false)
 
 window.addEventListener("hashchange", () ->
   select getElementFromUrl()
 , false)
+
+###
+start impress
+###
 
 select getElementFromUrl() || steps[0]
